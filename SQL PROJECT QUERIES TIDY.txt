@@ -1,0 +1,68 @@
+SLIDE 1 (WHAT GENRES OF FAMILY MOVIES ARE MOST POPULAR?)
+
+  WITH rental AS (
+SELECT inventory_id, COUNT(*) AS rental_count
+  FROM rental
+ GROUP BY inventory_id)
+SELECT f.title AS film_title, c.name AS category_name, SUM(r.rental_count) AS total_rental_count
+  FROM film f
+  JOIN film_category fc
+    ON f.film_id = fc.film_id
+  JOIN category c
+    ON c.category_id = fc.category_id
+  JOIN inventory i
+    ON i.film_id = f.film_id
+  JOIN rental r
+    ON r.inventory_id = i.inventory_id
+ WHERE c.name IN ('Music', 'Family', 'Comedy', 'Classics', 'Children', 'Animation')
+ GROUP BY f.title, c.name
+ ORDER BY category_name, f.title;
+
+SLIDE 2 (WHAT WERE THE TOP 10 SALES DAYS FOR STORE 1?)
+
+SELECT TO_CHAR(date, 'YYYY-MM-DD') AS sales_date, total_sales,    
+       RANK() OVER (ORDER BY total_sales DESC) AS sales_rank
+  FROM (SELECT DATE_TRUNC('day', p.payment_date) AS date,
+       SUM(p.amount) AS total_sales, s.store_id
+  FROM payment p
+  JOIN staff s
+    ON p.staff_id = s.staff_id
+ WHERE s.store_id = 1
+ GROUP BY date, s.store_id
+ ORDER BY total_sales DESC
+ LIMIT 10)AS T1;
+
+SLIDE 3 (LETS REWARD OUR TOP 10 CUSTOMERS)
+
+SELECT c.first_name || ' ' || c.last_name AS full_name, SUM(p.amount), c.email 
+  FROM customer c
+  JOIN payment p
+    ON p.customer_id = c.customer_id
+ GROUP BY full_name, c.email
+ ORDER BY sum DESC
+ LIMIT 10;
+
+SLIDE 4 (FIND OUR MOST AND LEAST POPULAR BUDGET RENTALS (UNDER $3) SO WE CAN ADJUST INVENTORY ACCORDINGLY)
+
+SELECT title, rental_rate, times_rented
+  FROM (SELECT f.title, f.rental_rate, COUNT(r.inventory_id) AS times_rented     FROM film f
+  JOIN inventory i
+    ON i.film_id = f.film_id
+  JOIN rental r
+    ON r.inventory_id = i.inventory_id
+ WHERE f.rental_rate < 3.00
+ GROUP BY f.title, f.rental_rate
+ ORDER BY times_rented DESC
+ LIMIT 10) AS top_results
+ UNION
+SELECT title, rental_rate, times_rented
+  FROM (SELECT f.title, f.rental_rate, COUNT(r.inventory_id) AS times_rented     FROM film f
+  JOIN inventory i
+    ON i.film_id = f.film_id
+  JOIN rental r
+    ON r.inventory_id = i.inventory_id
+ WHERE f.rental_rate < 3.00
+ GROUP BY f.title, f.rental_rate
+ ORDER BY times_rented ASC
+ LIMIT 10) AS bottom_results
+ ORDER BY times_rented DESC;
